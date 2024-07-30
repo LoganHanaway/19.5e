@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Boggle</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Boggle Game</h1>
+      <div id="board">
+        {% for row in board %}
+        <div class="row">
+          {% for letter in row %}
+          <span class="letter">{{ letter }}</span>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      <form id="word-form">
+        <input
+          type="text"
+          id="word"
+          name="word"
+          placeholder="Enter a word"
+          autocomplete="off"
+        />
+        <button type="submit">Submit</button>
+      </form>
+      <div id="result"></div>
+      <div id="score">Score: 0</div>
+      <div id="timer">Time: 60</div>
+      <div id="stats">
+        <div>Games Played: {{ session.get('played', 0) }}</div>
+        <div>High Score: {{ session.get('high_score', 0) }}</div>
+      </div>
+      <button id="restart-btn" onclick="location.href='/restart'">
+        Restart Game
+      </button>
+    </div>
+
+    <script>
+      let score = 0;
+      let timer = 60;
+
+      $(document).ready(function () {
+        const interval = setInterval(() => {
+          timer--;
+          $("#timer").text(`Time: ${timer}`);
+          if (timer === 0) {
+            clearInterval(interval);
+            $("#word-form button").prop("disabled", true);
+            $("#restart-btn").show();
+            axios.post("/post-score", { score: score }).then((response) => {
+              $("#stats").html(`
+                            <div>Games Played: ${response.data.played}</div>
+                            <div>High Score: ${response.data.high_score}</div>
+                        `);
+            });
+          }
+        }, 1000);
+
+        $("#word-form").on("submit", function (e) {
+          e.preventDefault();
+          const word = $("#word").val();
+          axios.get("/check-word", { params: { word } }).then((response) => {
+            const result = response.data.result;
+            if (result === "ok") {
+              score += word.length;
+              $("#score").text(`Score: ${score}`);
+            }
+            $("#result").text(result);
+            $("#word").val("");
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
